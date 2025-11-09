@@ -1,20 +1,16 @@
-#!/bin/bash
+# ──────────────────────────────────────────────────────────────────────────────
+# Dedupe-by-URL and clone
+#   - Canonicalizes URL (lowercase + strip trailing .git).
+#   - Skips subsequent duplicates and shows who claimed it first.
+# ──────────────────────────────────────────────────────────────────────────────
 
-# Ensure the PATH is set correctly
-# export PATH="$HOME/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-
-# Debugging statement to print the PATH
-echo "PATH is: $PATH"
-
-# Ensure that the necessary commands are available
-for cmd in git cut; do
+# Extra tools needed for normalization
+for cmd in tr sed; do
 	if ! command -v "$cmd" &>/dev/null; then
 		echo "$cmd could not be found. Please install $cmd."
 		exit 1
 	fi
 done
-
-# List of repositories to check and clone if not prepared
 
 repos=(
 	"Arch-Hyprland https://github.com/JaKooLit/Arch-Hyprland.git"
@@ -271,20 +267,42 @@ repos=(
 	"zoxide https://github.com/ajeetdsouza/zoxide.git"
 )
 
-# Directory to store repositories
-repo_dir="/home/heini/repos/"
+function normalize_url() {
+	# to-lowercase, strip trailing ".git"
+	# also collapse any accidental double slashes after host
+	local u="$1"
+	u="$(printf '%s' "$u" | tr '[:upper:]' '[:lower:]')"
+	u="$(printf '%s' "$u" | sed -E 's#\.git$##')"
+	u="$(printf '%s' "$u" | sed -E 's#(https?://[^/]+)//+#\1/#')"
+	printf '%s' "$u"
+}
+
+declare -A seen_by_url=() # canonical_url -> first_name
+repo_dir="/home/heini/repos"
 mkdir -p "$repo_dir"
 
-# Check and clone repositories if they do not exist
-for repo in "${repos[@]}"; do
-	name=$(echo "$repo" | cut -d ' ' -f 1)
-	url=$(echo "$repo" | cut -d ' ' -f 2)
-	path="$repo_dir/$name"
+echo "PATH is: $PATH"
+echo "Cloning into: $repo_dir"
+echo "—"
 
-	if [ ! -d "$path" ]; then
-		echo "Cloning $name from $url..."
-		git clone --recurse-submodules "$url" "$path"
-	else
-		echo "$name already exists at $path."
+for repo in "${repos[@]}"; do
+	name="$(echo "$repo" | cut -d ' ' -f 1)"
+	url="$(echo "$repo" | cut -d ' ' -f 2)"
+	canon="$(normalize_url "$url")"
+
+	# If we have seen this URL already, skip with message
+	if [[ -n "${seen_by_url[$canon]:-}" ]]; then
+		echo "SKIP duplicate URL: $url  (first seen as: ${seen_by_url[$canon]})"
+		continue
 	fi
+	seen_by_url[$canon]="$name"
+
+	path="$repo_dir/$name"
+	if [[ -d "$path/.git" ]]; then
+		echo "$name already exists at $path."
+		continue
+	fi
+
+	echo "Cloning $name from $url ..."
+	git clone --recurse-submodules "$url" "$path"
 done
