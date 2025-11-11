@@ -305,6 +305,8 @@ repos=(
 	"packages https://github.com/BioArchLinux/Packages.git"
 	"nvidia-304 https://github.com/flydiscohuebr/nvidia-304.git"
 	"nvidia-340xx https://github.com/MichelBoucey/nvidia-340xx.git"
+	"PKGBUILDS https://github.com/Martchus/PKGBUILDs.git"
+  "functions-resources https://github.com/do-community/function-resources.git"
 )
 
 function normalize_url() {
