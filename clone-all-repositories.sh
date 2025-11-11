@@ -6,21 +6,20 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 for cmd in tr sed; do
-  if ! command -v "$cmd" &>/dev/null; then
-    echo "$cmd could not be found. Please install $cmd."
-    exit 1
-  fi
+	if ! command -v "$cmd" &>/dev/null; then
+		echo "$cmd could not be found. Please install $cmd."
+		exit 1
+	fi
 done
 
-
 function normalize_url() {
-  # to-lowercase, strip trailing ".git"
-  # also collapse any accidental double slashes after host
-  local u="$1"
-  u="$(printf '%s' "$u" | tr '[:upper:]' '[:lower:]')"
-  u="$(printf '%s' "$u" | sed -E 's#\.git$##')"
-  u="$(printf '%s' "$u" | sed -E 's#(https?://[^/]+)//+#\1/#')"
-  printf '%s' "$u"
+	# to-lowercase, strip trailing ".git"
+	# also collapse any accidental double slashes after host
+	local u="$1"
+	u="$(printf '%s' "$u" | tr '[:upper:]' '[:lower:]')"
+	u="$(printf '%s' "$u" | sed -E 's#\.git$##')"
+	u="$(printf '%s' "$u" | sed -E 's#(https?://[^/]+)//+#\1/#')"
+	printf '%s' "$u"
 }
 
 repos=(
@@ -300,6 +299,12 @@ repos=(
 	"hardhat https://github.com/tidymodels/hardhat.git"
 	"tidyposterior https://github.com/tidymodels/tidyposterior.git"
 	"reprex https://github.com/tidyverse/reprex.git"
+	"pacman.store https://github.com/RubenKelevra/pacman.store.git"
+	"archzfs https://github.com/archzfs/archzfs.git"
+	"aur https://github.com/vbouchaud/aur.git"
+	"packages https://github.com/BioArchLinux/Packages.git"
+	"nvidia-304 https://github.com/flydiscohuebr/nvidia-304.git"
+	"nvidia-340xx https://github.com/MichelBoucey/nvidia-340xx.git"
 )
 
 function normalize_url() {
@@ -312,7 +317,7 @@ function normalize_url() {
 	printf '%s' "$u"
 }
 
-declare -A seen_by_url=()   # canonical_url -> first_name
+declare -A seen_by_url=() # canonical_url -> first_name
 repo_dir="/home/heini/repos"
 mkdir -p "$repo_dir"
 
@@ -321,23 +326,23 @@ echo "Cloning into: $repo_dir"
 echo "—"
 
 for repo in "${repos[@]}"; do
-  name="$(echo "$repo" | cut -d ' ' -f 1)"
-  url="$(echo "$repo"  | cut -d ' ' -f 2)"
-  canon="$(normalize_url "$url")"
+	name="$(echo "$repo" | cut -d ' ' -f 1)"
+	url="$(echo "$repo" | cut -d ' ' -f 2)"
+	canon="$(normalize_url "$url")"
 
-  # If we have seen this URL already, skip with message
-  if [[ -n "${seen_by_url[$canon]:-}" ]]; then
-    echo "SKIP duplicate URL: $url  (first seen as: ${seen_by_url[$canon]})"
-    continue
-  fi
-  seen_by_url[$canon]="$name"
+	# If we have seen this URL already, skip with message
+	if [[ -n "${seen_by_url[$canon]:-}" ]]; then
+		echo "SKIP duplicate URL: $url  (first seen as: ${seen_by_url[$canon]})"
+		continue
+	fi
+	seen_by_url[$canon]="$name"
 
-  path="$repo_dir/$name"
-  if [[ -d "$path/.git" ]]; then
-    echo "$name already exists at $path."
-    continue
-  fi
+	path="$repo_dir/$name"
+	if [[ -d "$path/.git" ]]; then
+		echo "$name already exists at $path."
+		continue
+	fi
 
-  echo "Cloning $name from $url ..."
-  git clone --recurse-submodules "$url" "$path"
+	echo "Cloning $name from $url ..."
+	git clone --recurse-submodules "$url" "$path"
 done
